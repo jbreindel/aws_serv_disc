@@ -95,7 +95,8 @@ static ERL_NIF_TERM list_instances(
 }
 
 static ErlNifFunc nif_funcs[] = {
-	{"list_instances", 1, list_instances}
+	{"list_instances", 1,
+		list_instances, ERL_NIF_DIRTY_JOB_IO_BOUND}
 };
 
 ERL_NIF_INIT(aws_serv_disc,
