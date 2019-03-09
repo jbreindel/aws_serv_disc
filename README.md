@@ -2,7 +2,7 @@ aws_serv_disc
 =====
 
 An experimental erlang nif that leverages the [aws c++ sdk](https://aws.amazon.com/sdk-for-cpp/) for service discovery.
-This library provides one function `aws_serv_disc:list_instances/1` which will return a map of ids to instance summaries:
+This library provides functions `aws_serv_disc:list_instances/1,2,3`, an example is below:
 
 ```
 Eshell V10.2.4  (abort with ^G)
