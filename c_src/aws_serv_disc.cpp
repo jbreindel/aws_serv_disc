@@ -25,7 +25,7 @@ ERL_NIF_TERM mk_error(ErlNifEnv* env, const char* mesg) {
 
 static ERL_NIF_TERM list_instances(
 	ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-	if (argc != 1) {
+	if (argc != 3) {
 		return enif_make_badarg(env);
 	}
 	char serv_id[1024];
@@ -34,9 +34,29 @@ static ERL_NIF_TERM list_instances(
 		serv_id, sizeof(serv_id), ERL_NIF_LATIN1) < 1) {
 		return enif_make_badarg(env);
 	}
-	// TODO check next token
-	// TODO check max results
-	ERL_NIF_TERM res = mk_error(env, "Can't Fetch");
+	int max_results = -1;
+	if (!enif_is_atom(env, argv[1])) {
+		if (!enif_is_number(env, argv[1])) {
+			return enif_make_badarg(env);
+		}
+		if (!enif_get_int(env, argv[1], &max_results)) {
+			return enif_make_badarg(env);
+		}
+	}
+	int has_next_tok = 0;
+	char next_tok[1024];
+	memset(&next_tok, '\0', sizeof(next_tok));
+	if (!enif_is_atom(env, argv[2])) {
+		if (!enif_is_list(env, argv[2])) {
+			return enif_make_badarg(env);
+		}
+		if (enif_get_string(env, argv[2],
+			next_tok, sizeof(next_tok), ERL_NIF_LATIN1) < 1) {
+			return enif_make_badarg(env);
+		}
+		has_next_tok = 1;
+	}
+	ERL_NIF_TERM res = mk_error(env, "cannot_fetch");
 	Aws::SDKOptions opts;
 	Aws::InitAPI(opts);
 	{
@@ -45,6 +65,13 @@ static ERL_NIF_TERM list_instances(
 		ServiceDiscoveryClient servDiscClient(clientConfig);
 		ListInstancesRequest req;
 		req.SetServiceId(servId);
+		if (max_results > -1) {
+			req.SetMaxResults(max_results);
+		}
+		if (has_next_tok) {
+			const Aws::String nextToken(next_tok);
+			req.SetNextToken(nextToken);
+		}
 		auto outcome = servDiscClient.ListInstances(req);
 		if (outcome.IsSuccess()) {
 			ListInstancesResult result = outcome.GetResult();
@@ -116,7 +143,11 @@ static ERL_NIF_TERM list_instances(
 				}
 			}
 		} else {
-			// TODO handle error
+			AWSError<ServiceDiscoveryErrors> err = outcome.GetError();
+			ERL_NIF_TERM msg = enif_make_string(
+				env, err.GetMessage().c_str(), ERL_NIF_LATIN1);
+			ERL_NIF_TERM res_atom = mk_atom(env, "error");
+			res = enif_make_tuple2(env, res_atom, msg);
 		}
 	}
 	Aws::ShutdownAPI(opts);
@@ -124,7 +155,7 @@ static ERL_NIF_TERM list_instances(
 }
 
 static ErlNifFunc nif_funcs[] = {
-	{"list_instances", 1,
+	{"list_instances", 3,
 		list_instances, ERL_NIF_DIRTY_JOB_IO_BOUND}
 };
 
