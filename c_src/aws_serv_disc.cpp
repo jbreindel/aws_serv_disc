@@ -127,8 +127,13 @@ static ERL_NIF_TERM list_instances(
 					env, arr, summaries.size());
 				ERL_NIF_TERM next_token_key = enif_make_string(
 					env, "NextToken", ERL_NIF_LATIN1);
-				ERL_NIF_TERM next_token_val = enif_make_string(
-					env, result.GetNextToken().c_str(), ERL_NIF_LATIN1);
+				ERL_NIF_TERM next_token_val;
+				if (result.GetNextToken().size() > 0) {
+					next_token_val = enif_make_string(
+						env, result.GetNextToken().c_str(), ERL_NIF_LATIN1);
+				} else {
+					next_token_val = mk_atom(env, "undefined");
+				}
 				ERL_NIF_TERM res_map_keys[2];
 				ERL_NIF_TERM res_map_vals[2];
 				res_map_keys[0] = insts_key;
